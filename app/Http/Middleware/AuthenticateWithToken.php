@@ -2,26 +2,26 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticateWithToken
 {
-    public function handle(Request $request, Closure $next)
+    public function handle($request, Closure $next)
     {
-        $token = $request->bearerToken(); // Obtener el token del header "Authorization"
+        $token = $request->bearerToken(); // Get the token from the request header
 
-        // Buscar un usuario con el token proporcionado
-        $user = User::where('token', hash('sha256', $token))->first();
+        // Check if the token matches the one in the database
+        $user = User::where('token', $token)->first();
 
         if (!$user) {
-            return response()->json(['message' => 'No autorizado.'], 401);
+            return response()->json(['message' => 'Unauthorized'], 401); // Unauthorized if the token doesn't match
         }
 
-        // Autenticar al usuario
-        auth()->login($user);
-
+        // Proceed with the request
         return $next($request);
     }
+
 }

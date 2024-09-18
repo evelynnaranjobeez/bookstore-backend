@@ -77,9 +77,53 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User deleted successfully!');
     }
 
+//    public function login(Request $request)
+//    {
+//
+//        // Validar los datos de entrada
+//        $request->validate([
+//            'email' => 'required|email',
+//            'password' => 'required',
+//        ]);
+//
+//        // Buscar al usuario por su email
+//        $user = User::where('email', $request->email)->first();
+//
+//        // Verificar si el usuario no existe
+//        if (!$user) {
+//            return response()->json([
+//                'success' => false,
+//                'message' => 'Usuario no encontrado',
+//            ], 404); // Código 404: No encontrado
+//        }
+//
+//        // Verificar si la contraseña es correcta
+//        if (!Hash::check($request->password, $user->password)) {
+//            throw ValidationException::withMessages([
+//                'email' => ['Las credenciales proporcionadas son incorrectas.'],
+//            ]);
+//        }
+//
+//        // Generar un token único
+//        $token = Str::random(80); // Genera un token de 80 caracteres
+//
+//        // Guardar el token en la tabla `users`
+//        $user->forceFill([
+//            'token' => hash('sha256', $token), // Guardar el token hasheado
+//        ])->save();
+//
+//        // Retornar el token al cliente
+//        return response()->json([
+////            'access_token' => $token, // El token en formato plano (no hasheado)
+////            'token_type' => 'Bearer',
+//            'success' => true,
+//            'message' => 'Logged in successfully!',
+//            'data' => $user->only(['id', 'email', 'role', 'token']), // Datos del usuario autenticado
+//        ], 200); // Código 200: OK
+//    }
+
     public function login(Request $request)
     {
-
         // Validar los datos de entrada
         $request->validate([
             'email' => 'required|email',
@@ -90,36 +134,28 @@ class UserController extends Controller
         $user = User::where('email', $request->email)->first();
 
         // Verificar si el usuario no existe
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Usuario no encontrado',
-            ], 404); // Código 404: No encontrado
-        }
-
-        // Verificar si la contraseña es correcta
-        if (!Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);
         }
 
-        // Generar un token único
-        $token = Str::random(80); // Genera un token de 80 caracteres
+        // Generar el token usando Sanctum
+        $token = $user->createToken('API Token')->plainTextToken;
 
-        // Guardar el token en la tabla `users`
-        $user->forceFill([
-            'token' => hash('sha256', $token), // Guardar el token hasheado
-        ])->save();
+        //put token in user
+        $user->token = $token;
+        $user->save();
 
         // Retornar el token al cliente
         return response()->json([
-//            'access_token' => $token, // El token en formato plano (no hasheado)
-//            'token_type' => 'Bearer',
-        'success' => true,
+            'success' => true,
             'message' => 'Logged in successfully!',
-            'data' => $user->only(['id', 'email', 'role', 'token']), // Datos del usuario autenticado
-        ], 200); // Código 200: OK
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'data' => $user->only(['id', 'email', 'role','token']),
+        ], 200);
     }
+
 
 }
