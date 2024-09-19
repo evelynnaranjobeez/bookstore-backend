@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
         // Seeder de usuarios
         DB::table('users')->insert([
             [
