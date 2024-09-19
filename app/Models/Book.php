@@ -11,11 +11,23 @@ class Book extends Model
 
     protected $table = 'books';
 
-    protected $fillable = ['title', 'author_id', 'year', 'genre', 'language', 'description'];
+    protected $fillable = ['title', 'author_id', 'year', 'genre_id', 'language_id', 'description'];
 
-    // Relación con el autor (muchos libros pertenecen a un autor)
+    // Relationship with author
     public function author()
     {
         return $this->belongsTo(Author::class);
+    }
+
+    // Relationship with genre
+    public function genre()
+    {
+        return $this->belongsTo(Genre::class);
+    }
+
+    // Relationship with language
+    public function language()
+    {
+        return $this->belongsTo(Language::class);
     }
 }

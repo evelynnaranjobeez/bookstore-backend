@@ -5,32 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\Author;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BookController extends Controller
 {
-    // Mostrar la lista de libros
+    // Show all books
     public function index()
     {
-        $books = Book::with('author')->get(); // Cargar también la relación del autor
+        // Load books with author, genre, and language relationships
+        $books = Book::with(['author', 'genre', 'language'])->get();
         return view('books.index', compact('books'));
     }
 
-    // Mostrar el formulario para crear un nuevo libro
+    // Show the form for creating a new book
     public function create()
     {
-        $authors = Author::all(); // Obtener todos los autores para seleccionarlos al crear un libro
-        return view('books.create', compact('authors'));
+        $authors = Author::all();
+        $genres = Genre::all();
+        $languages = Language::all();
+        return view('books.create', compact('authors', 'genres', 'languages'));
     }
 
-    // Guardar un nuevo libro en la base de datos
+    // Save a new book in the database
     public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
             'author_id' => 'required|exists:authors,id',
             'year' => 'required|integer',
-            'genre' => 'required|string|max:100',
-            'language' => 'required|string|max:50',
+            'genre_id' => 'required|exists:genres,id',  // Validate genre
+            'language_id' => 'required|exists:languages,id',  // Validate language
             'description' => 'nullable|string',
         ]);
 
@@ -53,28 +57,28 @@ class BookController extends Controller
         }
     }
 
-    // Mostrar un solo libro
+    // Show a specific book
     public function show(Book $book)
     {
         return view('books.show', compact('book'));
     }
 
-    // Mostrar el formulario para editar un libro
+    // Edit a specific book
     public function edit(Book $book)
     {
         $authors = Author::all();
         return view('books.edit', compact('book', 'authors'));
     }
 
-    // Actualizar un libro en la base de datos
+    // Update a specific book in the database
     public function update(Request $request, Book $book)
     {
         $request->validate([
             'title' => 'required|string|max:255',
             'author_id' => 'required|exists:authors,id',
             'year' => 'required|integer',
-            'genre' => 'required|string|max:100',
-            'language' => 'required|string|max:50',
+            'genre_id' => 'required|exists:genres,id',  // Validate genre
+            'language_id' => 'required|exists:languages,id',  // Validate language
             'description' => 'nullable|string',
         ]);
 
@@ -94,7 +98,7 @@ class BookController extends Controller
         }
     }
 
-    // Eliminar un libro de la base de datos
+    // Delete a specific book from the database
     public function destroy(Book $book)
     {
         try{
@@ -116,20 +120,21 @@ class BookController extends Controller
 
     public function getAllBooksWithFilter(Request $request)
     {
-        // Consulta base para obtener todos los libros
+
+        // Base query to get all books with author relationship
         $query = Book::with('author');
 
-        // Filtro por nombre del libro
+        // Filter by title
         if ($request->has('title')) {
             $query->where('title', 'LIKE', '%' . $request->input('title') . '%');
         }
 
-        // Filtro por idioma del libro
+        // Filter by genre
         if ($request->has('language')) {
             $query->where('language', $request->input('language'));
         }
 
-        // Filtro por nombre del autor
+        // Filter by author name
         if ($request->has('author')) {
             $query->whereHas('author', function ($q) use ($request) {
                 $q->where('name', 'LIKE', '%' . $request->input('author') . '%');
@@ -144,15 +149,19 @@ class BookController extends Controller
 
     public function getAllBooksWithPagination(Request $request)
     {
-        // Obtener parámetros de paginación y búsqueda
-        $limit = $request->input('limit', 10);  // Número de resultados por página
-        $offset = $request->input('offset', 0);  // Desplazamiento inicial
-        $search = $request->input('search', ''); // Búsqueda por título, autor, etc.
 
-        // Consulta base para obtener todos los libros (sin limit y offset)
-        $query = Book::with('author');
+        // Get limit and offset from the request
+        $limit = $request->input('limit', 10);  // Number of books per page
+        $offset = $request->input('offset', 0);  // Offset for pagination
+        $search = $request->input('search', ''); // Search keyword
 
-        // Aplicar búsqueda si se proporciona
+        // Base query to get all books with related author, genre, and language data
+        $query = Book::with(['author' => function($query) {
+            // Add books_count to the author model
+            $query->withCount('books');
+        }, 'genre', 'language']);
+
+        // Apply search filter
         if (!empty($search)) {
             $query->where('title', 'LIKE', '%' . $search . '%')
                 ->orWhereHas('author', function($q) use ($search) {
@@ -160,13 +169,13 @@ class BookController extends Controller
                 });
         }
 
-        // Contar el total de resultados sin limit y offset
+        // Count total number of books
         $total = $query->count();
 
-        // Aplicar paginación: limit y offset
+        // Apply limit and offset to the query
         $books = $query->limit($limit)->offset($offset)->get();
 
-        // Retornar los resultados en formato JSON con paginación
+        // Return the paginated books as JSON response
         return response()->json([
             'total' => $total,
             'limit' => $limit,
@@ -176,19 +185,16 @@ class BookController extends Controller
     }
 
 
-
-
     public function getBookById($id)
     {
-        // Buscar el libro por su ID
+        // Search for the book by ID with author relationship
         $book = Book::with('author')->find($id);
 
-        // Si el libro no existe, retornar un error 404
         if (!$book) {
             return response()->json(['message' => 'Book not found'], 404);
         }
 
-        // Retornar el libro en formato JSON
+        // Return the book as JSON response
         return response()->json($book);
     }
 

@@ -7,24 +7,25 @@ use Illuminate\Http\Request;
 
 class AuthorController extends Controller
 {
+    // This method retrieves all authors and returns them to the view for display
     public function index()
     {
-        // Obtener todos los autores
         $authors = Author::all();
         return view('authors.index', compact('authors'));
     }
 
+    // This method validates and stores a new author in the database
     public function store(Request $request)
     {
-        // Validar y crear un nuevo autor
-        $author = Author::create($request->all());
+        $author = Author::create($request->all()); // Create a new author with validated data
         return redirect()->back();
     }
 
+    // This method retrieves all authors along with a count of how many books each has written
     public function getAllAuthors()
     {
-        $authors = Author::all(); // Obtener todos los autores
-        return response()->json($authors); // Retornar en formato JSON
+        $authors = Author::withCount('books')->get(); // Fetch all authors and count related books
+        return response()->json($authors); // Return the data as a JSON response
     }
-    // Otros métodos para editar, actualizar y eliminar autores
+
 }

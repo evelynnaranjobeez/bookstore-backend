@@ -15,5 +15,4 @@ class User extends Authenticatable
 
     protected $fillable = ['email', 'password', 'role'];
 
-    // Si quieres usar roles específicos, puedes definir métodos de rol
 }
